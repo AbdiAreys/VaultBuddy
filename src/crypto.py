@@ -4,6 +4,9 @@ Provides functions for key derivation, encryption, and decryption.
 """
 
 from argon2.low_level import hash_secret_raw, Type
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+
 
 def derive_key(password: str) -> bytes:
     """
@@ -16,14 +19,14 @@ def derive_key(password: str) -> bytes:
     Returns:
         bytes: The derived key.
     """
-    static_salt = b"VaultBuddyStaticSalt123"  # 20 bytes, static for MVP
+    static_salt = b"VaultBuddyStaticSalt123"  # ⚠️ Static for MVP. Replace with random salt in production.
     key = hash_secret_raw(
         secret=password.encode(),
         salt=static_salt,
         time_cost=2,
-        memory_cost=65536,
+        memory_cost=65536,   # 64 MB
         parallelism=1,
-        hash_len=32,
+        hash_len=32,         # 32 bytes = 256-bit AES key
         type=Type.ID
     )
     return key
@@ -31,29 +34,33 @@ def derive_key(password: str) -> bytes:
 
 def encrypt_data(key: bytes, plaintext: str) -> bytes:
     """
-    Encrypts the given plaintext using the provided key.
-    Placeholder function. Not implemented yet.
+    Encrypts the given plaintext using AES-256-GCM.
     
     Args:
-        key (bytes): The key to use for encryption.
-        plaintext (str): The plaintext to encrypt.
-        
+        key (bytes): 32-byte encryption key.
+        plaintext (str): The secret to encrypt.
+    
     Returns:
-        bytes: The encrypted data.
+        bytes: Nonce + ciphertext + tag.
     """
-    return b""  # Placeholder return for type correctness
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)  # 96-bit random nonce
+    ciphertext = aesgcm.encrypt(nonce, plaintext.encode(), None)
+    return nonce + ciphertext  # Store nonce + ciphertext + tag together
 
 
-def decrypt_data(key: bytes, ciphertext: bytes) -> str:
+def decrypt_data(key: bytes, data: bytes) -> str:
     """
-    Decrypts the given ciphertext using the provided key.
-    Placeholder function. Not implemented yet.
+    Decrypts the given ciphertext using AES-256-GCM.
     
     Args:
-        key (bytes): The key to use for decryption.
-        ciphertext (bytes): The data to decrypt.
-        
+        key (bytes): 32-byte encryption key.
+        data (bytes): Nonce + ciphertext + tag.
+    
     Returns:
-        str: The decrypted plaintext.
+        str: Decrypted plaintext.
     """
-    return ""  # Placeholder return for type correctness
+    aesgcm = AESGCM(key)
+    nonce, ct = data[:12], data[12:]
+    plaintext = aesgcm.decrypt(nonce, ct, None)
+    return plaintext.decode()

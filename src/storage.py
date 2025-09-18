@@ -37,21 +37,50 @@ def store_secret(name: str, encrypted_value: bytes):
         name (str): The name of the secret.
         encrypted_value (bytes): The encrypted value of the secret.
     """
-    pass
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO secrets (name, value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(name) DO UPDATE SET 
+            value=excluded.value,
+            updated_at=CURRENT_TIMESTAMP
+    """, (name, encrypted_value))
+    conn.commit()
+    conn.close()
+    print(f"🔐 Secret stored: {name}")
 
 
-def get_secret(name: str):
+def get_secret(name: str) -> bytes | None:
     """Retrieves a secret from the database.
     
     Args:
         name (str): The name of the secret to retrieve.
+        
+    Returns:
+        bytes: The encrypted value of the secret, or None if not found.
+    """
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT value FROM secrets WHERE name = ?", (name,))
+    result = c.fetchone()
+    conn.close()
+    
+    if result:
+        return result[0]
+    return None
+
+
+def list_secrets() -> list[str]:
+    """Lists all stored secret names.
     
     Returns:
-        The decrypted secret value.
+        list[str]: A list of all secret names in the database.
     """
-    pass
-
-
-def list_secrets():
-    """Lists all stored secrets."""
-    pass
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT name FROM secrets ORDER BY name")
+    results = c.fetchall()
+    conn.close()
+    
+    return [row[0] for row in results]

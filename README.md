@@ -36,6 +36,15 @@ A secure, local-only CLI-based secrets manager built with Python. VaultBuddy all
    python src/main.py
    ```
 
+### Quick Launch
+
+- Windows (double-click): `run.bat`
+- macOS/Linux:
+  ```bash
+  chmod +x run.sh
+  ./run.sh
+  ```
+
 ## Usage
 
 ### Starting VaultBuddy

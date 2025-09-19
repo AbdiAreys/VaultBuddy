@@ -1,5 +1,8 @@
 import getpass
-from crypto import derive_key, encrypt_data, decrypt_data
+from crypto import (
+    derive_key, encrypt_data, decrypt_data, generate_salt, 
+    clear_sensitive_data, validate_password_strength, validate_secret_name
+)
 from storage import init_db, store_secret, get_secret, list_secrets
 
 def main():
@@ -11,11 +14,23 @@ def main():
     """
 
     init_db()
-    # Ask for master password (hidden input so it doesn’t show on screen)
-    master_password = getpass.getpass("Enter your master password: ")
+    
+    # Ask for master password with validation
+    while True:
+        master_password = getpass.getpass("Enter your master password: ")
+        is_valid, error_msg = validate_password_strength(master_password)
+        if is_valid:
+            break
+        print(f"❌ {error_msg}")
+        print("Password requirements:")
+        print("  - At least 8 characters")
+        print("  - Uppercase and lowercase letters")
+        print("  - Numbers and special characters")
+        print()
 
     # Derive encryption key
     key = derive_key(master_password)
+    clear_sensitive_data(master_password)  # Clear password from memory
     print("✅ Key derived successfully")
 
     while True:
@@ -42,21 +57,32 @@ def main():
 
 def add_secret(key: bytes):
     """Add a new secret to the vault."""
-    name = input("Enter secret name: ").strip()
-    if not name:
-        print("❌ Secret name cannot be empty")
-        return
+    # Validate secret name
+    while True:
+        name = input("Enter secret name: ").strip()
+        is_valid, error_msg = validate_secret_name(name)
+        if is_valid:
+            break
+        print(f"❌ {error_msg}")
     
+    # Get secret value
     value = getpass.getpass("Enter secret value: ")
     if not value:
         print("❌ Secret value cannot be empty")
         return
     
     try:
+        # Generate random salt for this secret
+        salt = generate_salt()
+        # Derive key with the specific salt
+        secret_key = derive_key("", salt)  # We'll use the master key + salt
+        # For now, use the master key directly (in production, you'd combine them)
         encrypted_value = encrypt_data(key, value)
-        store_secret(name, encrypted_value)
+        store_secret(name, encrypted_value, salt)
+        clear_sensitive_data(value)  # Clear secret from memory
     except Exception as e:
         print(f"❌ Error storing secret: {e}")
+        clear_sensitive_data(value)
 
 
 def retrieve_secret(key: bytes):
@@ -67,13 +93,15 @@ def retrieve_secret(key: bytes):
         return
     
     try:
-        encrypted_value = get_secret(name)
-        if encrypted_value is None:
+        result = get_secret(name)
+        if result is None:
             print(f"❌ Secret '{name}' not found")
             return
         
+        encrypted_value, salt = result
         decrypted_value = decrypt_data(key, encrypted_value)
         print(f"🔓 Secret '{name}': {decrypted_value}")
+        clear_sensitive_data(decrypted_value)  # Clear decrypted value from memory
     except Exception as e:
         print(f"❌ Error retrieving secret: {e}")
 

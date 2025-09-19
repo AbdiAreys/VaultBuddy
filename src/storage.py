@@ -128,3 +128,25 @@ def set_vault_salt(salt: bytes) -> None:
     )
     conn.commit()
     conn.close()
+
+
+def delete_secret(name: str) -> bool:
+    """Deletes a secret by name.
+    
+    Args:
+        name (str): The secret name to delete.
+    
+    Returns:
+        bool: True if a row was deleted, False otherwise.
+    """
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("DELETE FROM secrets WHERE name = ?", (name,))
+    deleted = c.rowcount > 0
+    conn.commit()
+    conn.close()
+    if deleted:
+        print(f"🗑️ Deleted secret: {name}")
+    else:
+        print(f"ℹ️ Secret not found: {name}")
+    return deleted

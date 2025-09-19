@@ -3,7 +3,7 @@ from crypto import (
     derive_key, encrypt_data, decrypt_data, generate_salt, 
     clear_sensitive_data, validate_password_strength, validate_secret_name
 )
-from storage import init_db, store_secret, get_secret, list_secrets, get_vault_salt, set_vault_salt
+from storage import init_db, store_secret, get_secret, list_secrets, get_vault_salt, set_vault_salt, delete_secret
 
 def main():
     """
@@ -42,7 +42,8 @@ def main():
         print("1. Add secret")
         print("2. Retrieve secret")
         print("3. List secrets")
-        print("4. Exit")
+        print("4. Delete secret")
+        print("5. Exit")
 
         choice = input("Select an option: ")
 
@@ -53,6 +54,8 @@ def main():
         elif choice == '3':
             list_all_secrets()
         elif choice == '4':
+            delete_secret_cli()
+        elif choice == '5':
             print("Exiting VaultBuddy. Goodbye!")
             break
         else:
@@ -122,6 +125,20 @@ def list_all_secrets():
                 print(f"  {i}. {name}")
     except Exception as e:
         print(f"❌ Error listing secrets: {e}")
+
+
+def delete_secret_cli():
+    """Delete a secret by name."""
+    name = input("Enter secret name to delete: ").strip()
+    if not name:
+        print("❌ Secret name cannot be empty")
+        return
+    try:
+        deleted = delete_secret(name)
+        if not deleted:
+            print("❌ Nothing deleted")
+    except Exception as e:
+        print(f"❌ Error deleting secret: {e}")
 
 if __name__ == "__main__":
     main()

@@ -146,7 +146,7 @@ def delete_secret(name: str) -> bool:
     conn.commit()
     conn.close()
     if deleted:
-        print(f"🗑️ Deleted secret: {name}")
+        print(f"Deleted secret: {name}")
     else:
         print(f"ℹ️ Secret not found: {name}")
     return deleted

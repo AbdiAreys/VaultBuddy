@@ -3,7 +3,7 @@ from crypto import (
     derive_key, encrypt_data, decrypt_data, generate_salt, 
     clear_sensitive_data, validate_password_strength, validate_secret_name
 )
-from storage import init_db, store_secret, get_secret, list_secrets
+from storage import init_db, store_secret, get_secret, list_secrets, get_vault_salt, set_vault_salt
 
 def main():
     """
@@ -28,8 +28,12 @@ def main():
         print("  - Numbers and special characters")
         print()
 
-    # Derive encryption key
-    key = derive_key(master_password)
+    # Load or create persistent vault salt, then derive key
+    vault_salt = get_vault_salt()
+    if vault_salt is None:
+        vault_salt = generate_salt()
+        set_vault_salt(vault_salt)
+    key = derive_key(master_password, vault_salt)
     clear_sensitive_data(master_password)  # Clear password from memory
     print("✅ Key derived successfully")
 

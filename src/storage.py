@@ -16,6 +16,15 @@ def init_db():
     """Initializes the SQLite database and creates the secrets table if it doesn't exist."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
+    # Metadata table for vault-level settings (e.g., Argon2 salt)
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS metadata (
+            key TEXT PRIMARY KEY,
+            value BLOB
+        )
+        """
+    )
     c.execute("""
         CREATE TABLE IF NOT EXISTS secrets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,3 +102,29 @@ def list_secrets() -> list[str]:
     conn.close()
     
     return [row[0] for row in results]
+
+
+def get_vault_salt() -> bytes | None:
+    """Returns the vault-level Argon2 salt if present, else None."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT value FROM metadata WHERE key = 'vault_salt'")
+    row = c.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def set_vault_salt(salt: bytes) -> None:
+    """Sets or updates the vault-level Argon2 salt."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute(
+        """
+        INSERT INTO metadata(key, value)
+        VALUES('vault_salt', ?)
+        ON CONFLICT(key) DO UPDATE SET value=excluded.value
+        """,
+        (salt,),
+    )
+    conn.commit()
+    conn.close()

@@ -26,6 +26,12 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # Ensure schema has the 'salt' column (migrate older databases)
+    c.execute("PRAGMA table_info(secrets)")
+    columns = {row[1] for row in c.fetchall()}
+    if "salt" not in columns:
+        c.execute("ALTER TABLE secrets ADD COLUMN salt BLOB")
+        print("✅ Database migrated: added 'salt' column to 'secrets' table")
     conn.commit()
     conn.close()
     print(f"✅ Database initialized: {DB_FILE}")
@@ -54,14 +60,14 @@ def store_secret(name: str, encrypted_value: bytes, salt: bytes):
     print(f"🔐 Secret stored: {name}")
 
 
-def get_secret(name: str) -> tuple[bytes, bytes] | None:
+def get_secret(name: str) -> tuple[bytes, bytes | None] | None:
     """Retrieves a secret from the database.
     
     Args:
         name (str): The name of the secret to retrieve.
         
     Returns:
-        tuple[bytes, bytes]: (encrypted_value, salt) or None if not found.
+        tuple[bytes, bytes | None]: (encrypted_value, salt) or None if not found.
     """
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()

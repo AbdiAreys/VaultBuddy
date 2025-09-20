@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# VaultBuddy - POSIX launcher
+# Ensures python3 is present, then runs the CLI from the repo root.
 set -euo pipefail
 cd "$(dirname "$0")"
 

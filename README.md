@@ -1,21 +1,24 @@
 # VaultBuddy V1
 
-A secure, local-only CLI-based secrets manager built with Python. VaultBuddy allows you to store, retrieve, and manage your secrets using strong encryption with Argon2id key derivation and AES-256-GCM encryption.
+A secure, local-only CLI secrets manager built with Python. VaultBuddy stores, retrieves, and manages secrets using Argon2id key derivation and AES-256-GCM encryption. It now includes password and name validation, persistent vault salt, delete support, and automatic DB migration.
 
 ## Features
 
-- 🔐 **Secure Encryption**: Uses Argon2id for key derivation and AES-256-GCM for encryption
-- 💾 **Local Storage**: SQLite database for local-only secret storage
-- 🖥️ **CLI Interface**: Simple command-line interface for easy use
-- 🔑 **Master Password**: Single master password protects all your secrets
-- 📝 **CRUD Operations**: Add, retrieve, and list secrets
+- 🔐 **Secure encryption**: Argon2id-derived 256-bit key + AES-256-GCM
+- 🧂 **Persistent vault salt**: 32-byte random salt saved in SQLite `metadata`
+- 📝 **CRUD operations**: Add, retrieve, list, and delete secrets
+- 🔎 **Validation**: Master password strength and secret name validation
+- 💾 **Local storage**: SQLite database (no network)
+- 🖥️ **CLI interface**: Simple and fast
+- 🔑 **Master password**: Single password protects the entire vault
 
 ## Security Details
 
-- **Key Derivation**: Argon2id with time_cost=2, memory_cost=65536 (64 MB), parallelism=1
-- **Encryption**: AES-256-GCM with 12-byte random nonce
-- **Storage**: SQLite database with encrypted blob storage
-- **Password**: Master password required for all operations
+- **Key derivation**: Argon2id with time_cost=2, memory_cost=65536 (64 MB), parallelism=1
+- **Vault salt**: 32-byte random salt generated on first run and stored under `metadata.vault_salt`
+- **Encryption**: AES-256-GCM with a 12-byte random nonce
+- **Storage**: SQLite; `secrets` table stores name, encrypted value, salt, timestamps
+- **Password handling**: Master password is never stored; input is masked; best-effort sensitive data clearing
 
 ## Requirements
 
@@ -49,87 +52,104 @@ A secure, local-only CLI-based secrets manager built with Python. VaultBuddy all
 
 ### Starting VaultBuddy
 
-Run the application from the project root directory:
+Run from the project root:
 
 ```bash
 python src/main.py
 ```
 
-You'll be prompted to enter your master password. This password is used to derive the encryption key for all your secrets.
+On first run, a random vault salt is created and saved. You will be prompted for the master password (see password requirements below).
 
 ### Menu Options
 
-Once started, you'll see the main menu with these options:
-
-1. **Add secret** - Store a new secret
-2. **Retrieve secret** - Get and decrypt a stored secret
-3. **List secrets** - View all stored secret names
-4. **Exit** - Quit the application
+1. **Add secret** — Store a new secret
+2. **Retrieve secret** — Decrypt and show a secret
+3. **List secrets** — Show stored secret names
+4. **Delete secret** — Remove a secret by name
+5. **Exit** — Quit the application
 
 ### Adding a Secret
 
-1. Select option `1` from the menu
-2. Enter a name for your secret (e.g., "GitHub Password")
-3. Enter the secret value (input is hidden for security)
-4. The secret will be encrypted and stored
+1. Select `1`
+2. Enter a valid secret name (see rules below)
+3. Enter the secret value (input is hidden)
+4. The encrypted secret is saved
 
 ### Retrieving a Secret
 
-1. Select option `2` from the menu
-2. Enter the name of the secret you want to retrieve
-3. The decrypted secret will be displayed
+1. Select `2`
+2. Enter the secret name
+3. The decrypted value is displayed
 
 ### Listing Secrets
 
-1. Select option `3` from the menu
-2. All stored secret names will be displayed (values are not shown)
+1. Select `3`
+2. You will see all stored names (values are never shown)
+
+### Deleting a Secret
+
+1. Select `4`
+2. Enter the secret name to delete
+
+### Password Requirements
+
+- At least 8 characters and fewer than 128 characters
+- Must contain uppercase, lowercase, and numbers
+- Must contain at least one special character: `!@#$%^&*()_+-=[]{}|;:,.<>?`
+
+### Secret Name Rules
+
+- Cannot be empty; maximum 100 characters
+- Must not contain any of: `" ' ; \\ / : * ? < > |`
 
 ## File Structure
 
 ```
 VaultBuddy/
 ├── src/
-│   ├── main.py          # Main application entry point
-│   ├── crypto.py        # Cryptographic functions
-│   └── storage.py       # Database operations
+│   ├── main.py          # Main application entry point (CLI)
+│   ├── crypto.py        # Cryptographic functions and validation
+│   └── storage.py       # SQLite database operations & migration
 ├── requirements.txt     # Python dependencies
-├── .gitignore          # Git ignore rules
-├── README.md           # This file
-└── vaultbuddy.db       # SQLite database (created on first run)
+├── run.bat              # Windows launcher
+├── run.sh               # macOS/Linux launcher
+├── README.md            # This file
+└── vaultbuddy.db        # SQLite database (created on first run)
 ```
+
+## Database & Migration
+
+- On startup, the app ensures required tables exist (`metadata`, `secrets`).
+- If an existing database is missing the `secrets.salt` column, it is added automatically and you will see a confirmation message in the console.
+- Vault-level salt is stored under `metadata.vault_salt`.
 
 ## Security Considerations
 
-⚠️ **Important Security Notes:**
+⚠️ **Important notes**
 
-- This is a local-only application - secrets are never transmitted over the network
-- The master password is never stored - it's only used to derive the encryption key
-- Currently uses a static salt for demonstration - production versions should use random salts
-- Keep your master password secure - losing it means losing access to all secrets
-- The database file (`vaultbuddy.db`) contains encrypted data but should still be kept secure
+- Local-only application: secrets are never transmitted over the network
+- Master password is never stored; losing it means losing access to all secrets
+- The database file (`vaultbuddy.db`) contains encrypted data and should be kept secure
 
 ## Development
 
-### Project Structure
-
-- `main.py`: CLI interface and main application logic
-- `crypto.py`: Cryptographic operations (key derivation, encryption, decryption)
-- `storage.py`: SQLite database operations
+- `main.py`: CLI and application flow
+- `crypto.py`: Key derivation, AES-GCM encryption/decryption, input validation
+- `storage.py`: SQLite init/migration, CRUD functions, persistent vault salt
 
 ### Dependencies
 
-- `cryptography`: For AES-GCM encryption/decryption
-- `argon2-cffi`: For Argon2id key derivation
+- `cryptography`: AES-GCM encryption/decryption
+- `argon2-cffi`: Argon2id key derivation
 
 ## License
 
-This project is for educational and personal use. Please ensure you understand the security implications before using it for sensitive data.
+This project is for educational and personal use. Understand the security implications before using it for sensitive data.
 
 ## Future Enhancements
 
-- Random salt generation per vault
+- Per-secret key derivation that combines vault/master key with per-secret salt
 - Secret categories/tags
 - Import/export functionality
-- Password strength validation
 - Auto-lock after inactivity
 - Backup and restore features

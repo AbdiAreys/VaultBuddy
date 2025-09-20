@@ -1,3 +1,13 @@
+"""
+VaultBuddy CLI.
+
+This module implements the interactive command-line interface for VaultBuddy.
+It handles unlocking with a master password, deriving an encryption key using
+a persistent vault salt, and performing CRUD operations on secrets stored in
+SQLite via functions provided by `storage` and cryptographic primitives in
+`crypto`.
+"""
+
 import getpass
 from crypto import (
     derive_key, encrypt_data, decrypt_data, generate_salt, 
@@ -38,14 +48,17 @@ def main():
     print("✅ Key derived successfully")
 
     while True:
-        print("\nVaultBuddy Menu:")
+        print("\n" + "="*50)
+        print("🔐 VaultBuddy - Secure Secrets Manager")
+        print("="*50)
         print("1. Add secret")
         print("2. Retrieve secret")
         print("3. List secrets")
         print("4. Delete secret")
         print("5. Exit")
+        print("-"*50)
 
-        choice = input("Select an option: ")
+        choice = input("Select an option (1-5): ").strip()
 
         if choice == '1':
             add_secret(key)
@@ -56,10 +69,11 @@ def main():
         elif choice == '4':
             delete_secret_cli()
         elif choice == '5':
-            print("Exiting VaultBuddy. Goodbye!")
+            print("\n🔒 Exiting VaultBuddy. Your secrets are safe!")
+            print("Goodbye! 👋")
             break
         else:
-            print("Invalid option. Please try again.")
+            print("❌ Invalid option. Please enter 1-5.")
 
 
 def add_secret(key: bytes):
@@ -69,6 +83,13 @@ def add_secret(key: bytes):
         name = input("Enter secret name: ").strip()
         is_valid, error_msg = validate_secret_name(name)
         if is_valid:
+            # Check if secret already exists
+            existing = get_secret(name)
+            if existing:
+                overwrite = input(f"Secret '{name}' already exists. Overwrite? (y/N): ").strip().lower()
+                if overwrite != 'y':
+                    print("❌ Secret not added")
+                    return
             break
         print(f"❌ {error_msg}")
     
@@ -81,12 +102,11 @@ def add_secret(key: bytes):
     try:
         # Generate random salt for this secret
         salt = generate_salt()
-        # Derive key with the specific salt
-        secret_key = derive_key("", salt)  # We'll use the master key + salt
-        # For now, use the master key directly (in production, you'd combine them)
+        # Use the master key directly for encryption (simpler approach for MVP)
         encrypted_value = encrypt_data(key, value)
         store_secret(name, encrypted_value, salt)
         clear_sensitive_data(value)  # Clear secret from memory
+        print(f"✅ Secret '{name}' stored successfully")
     except Exception as e:
         print(f"❌ Error storing secret: {e}")
         clear_sensitive_data(value)
@@ -108,6 +128,19 @@ def retrieve_secret(key: bytes):
         encrypted_value, salt = result
         decrypted_value = decrypt_data(key, encrypted_value)
         print(f"🔓 Secret '{name}': {decrypted_value}")
+        
+        # Ask if user wants to copy to clipboard (future enhancement)
+        copy_choice = input("Copy to clipboard? (y/N): ").strip().lower()
+        if copy_choice == 'y':
+            try:
+                import pyperclip
+                pyperclip.copy(decrypted_value)
+                print("📋 Copied to clipboard")
+            except ImportError:
+                print("ℹ️ pyperclip not installed - install with: pip install pyperclip")
+            except Exception as e:
+                print(f"❌ Failed to copy to clipboard: {e}")
+        
         clear_sensitive_data(decrypted_value)  # Clear decrypted value from memory
     except Exception as e:
         print(f"❌ Error retrieving secret: {e}")
@@ -133,10 +166,19 @@ def delete_secret_cli():
     if not name:
         print("❌ Secret name cannot be empty")
         return
+    
+    # Confirm deletion
+    confirm = input(f"Are you sure you want to delete '{name}'? (y/N): ").strip().lower()
+    if confirm != 'y':
+        print("❌ Deletion cancelled")
+        return
+    
     try:
         deleted = delete_secret(name)
-        if not deleted:
-            print("❌ Nothing deleted")
+        if deleted:
+            print(f"✅ Secret '{name}' deleted successfully")
+        else:
+            print(f"❌ Secret '{name}' not found")
     except Exception as e:
         print(f"❌ Error deleting secret: {e}")
 

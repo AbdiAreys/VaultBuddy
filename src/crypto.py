@@ -1,6 +1,10 @@
 """
-This module is responsible for cryptographic operations.
-Provides functions for key derivation, encryption, and decryption.
+Cryptographic operations and validation utilities.
+
+- Key derivation with Argon2id (32-byte key for AES-256)
+- AES-256-GCM encryption/decryption with random nonces
+- Password strength and secret name validation helpers
+- Secure random salt generation and best-effort memory clearing
 """
 
 from argon2.low_level import hash_secret_raw, Type

@@ -1,3 +1,5 @@
+REM VaultBuddy - Windows launcher
+REM Checks Python availability and runs the CLI from the repo root.
 @echo off
 setlocal enabledelayedexpansion
 cd /d "%~dp0"

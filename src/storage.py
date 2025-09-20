@@ -1,11 +1,20 @@
 """
-This module is responsible for local SQLite storage.
+Local SQLite storage layer.
 
-Functions:
-- init_db(): Initializes the SQLite database.
-- store_secret(name: str, encrypted_value: bytes): Stores a secret in the database.
-- get_secret(name: str): Retrieves a secret from the database.
-- list_secrets(): Lists all stored secrets.
+Tables:
+- metadata(key TEXT PRIMARY KEY, value BLOB)
+  • Stores vault-level settings such as the persistent Argon2 salt under key
+    'vault_salt'.
+- secrets(id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE,
+          value BLOB,
+          salt BLOB,
+          created_at TIMESTAMP,
+          updated_at TIMESTAMP)
+  • Stores encrypted secret values along with a per-secret salt and timestamps.
+
+On startup, a lightweight migration ensures required tables/columns exist,
+including adding the `salt` column to `secrets` if missing.
 """
 
 import sqlite3

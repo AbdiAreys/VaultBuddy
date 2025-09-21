@@ -4,11 +4,11 @@ A secure, local-only CLI secrets manager built with Python. Uses Argon2id key de
 
 ## Features
 
-- 🔐 **Secure encryption**: Argon2id + AES-256-GCM
-- 📝 **CRUD operations**: Add, retrieve, list, and delete secrets
-- 🔎 **Input validation**: Password strength and secret name validation
-- 💾 **Local storage**: SQLite database (no network)
-- 🖥️ **CLI interface**: Simple and fast
+- **Secure encryption**: Argon2id + AES-256-GCM
+- **CRUD operations**: Add, retrieve, list, and delete secrets
+- **Input validation**: Password strength and secret name validation
+- **Local storage**: SQLite database (no network)
+- **CLI interface**: Simple and fast
 
 ## Installation
 

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vaultbuddy"
+version = "0.1.0"
+description = "OS keyring-backed CLI secrets manager"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "keyring>=24.3.1",
+  "pyperclip>=1.8.2",
+  "typer>=0.12.3",
+]
+authors = [{ name = "VaultBuddy" }]
+
+[project.scripts]
+vaultbuddy = "vaultbuddy.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vaultbuddy*"]
+
+

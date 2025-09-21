@@ -1,20 +1,5 @@
 """
-Local SQLite storage layer.
-
-Tables:
-- metadata(key TEXT PRIMARY KEY, value BLOB)
-  • Stores vault-level settings such as the persistent Argon2 salt under key
-    'vault_salt'.
-- secrets(id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT UNIQUE,
-          value BLOB,
-          salt BLOB,
-          created_at TIMESTAMP,
-          updated_at TIMESTAMP)
-  • Stores encrypted secret values along with a per-secret salt and timestamps.
-
-On startup, a lightweight migration ensures required tables/columns exist,
-including adding the `salt` column to `secrets` if missing.
+SQLite storage layer for encrypted secrets and vault metadata.
 """
 
 import sqlite3

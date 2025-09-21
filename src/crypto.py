@@ -1,10 +1,5 @@
 """
-Cryptographic operations and validation utilities.
-
-- Key derivation with Argon2id (32-byte key for AES-256)
-- AES-256-GCM encryption/decryption with random nonces
-- Password strength and secret name validation helpers
-- Secure random salt generation and best-effort memory clearing
+Cryptographic operations: Argon2id key derivation, AES-256-GCM encryption, and input validation.
 """
 
 from argon2.low_level import hash_secret_raw, Type

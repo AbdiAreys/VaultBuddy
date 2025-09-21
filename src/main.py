@@ -1,11 +1,5 @@
 """
-VaultBuddy CLI.
-
-This module implements the interactive command-line interface for VaultBuddy.
-It handles unlocking with a master password, deriving an encryption key using
-a persistent vault salt, and performing CRUD operations on secrets stored in
-SQLite via functions provided by `storage` and cryptographic primitives in
-`crypto`.
+VaultBuddy CLI - Interactive command-line interface for secure secrets management.
 """
 
 import getpass

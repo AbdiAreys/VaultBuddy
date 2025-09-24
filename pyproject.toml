@@ -10,9 +10,9 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
-  "keyring>=24.3.1",
-  "pyperclip>=1.8.2",
-  "typer>=0.12.3",
+  "keyring==24.3.1",
+  "pyperclip==1.8.2",
+  "typer==0.12.3",
 ]
 authors = [{ name = "VaultBuddy" }]
 
@@ -25,5 +25,37 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["vaultbuddy*"]
+
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.2.0",
+  "pytest-mock==3.14.0",
+  "ruff==0.6.8",
+  "bandit==1.7.9",
+  "detect-secrets==1.5.0",
+  "pre-commit==3.8.0",
+  "pip-audit==2.7.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "preserve"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.bandit]
+targets = ["src"]
+exclude_dirs = ["tests"]
+skips = ["B101", "B104"]
 
 

@@ -15,18 +15,34 @@ app = typer.Typer(add_completion=False, help="VaultBuddy - OS keyring-backed sec
 
 
 @app.callback()
-def _init() -> None:
-    init_db()
+def _init(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(False, "--verbose", help="Verbose output; include secret names in messages"),
+    allow_insecure_backend: bool = typer.Option(
+        False,
+        "--allow-insecure-backend",
+        help="Allow running with insecure/unknown keyring backend (NOT RECOMMENDED)",
+    ),
+) -> None:
+    """Initialize app context and storage with backend security enforcement."""
+    ctx.ensure_object(dict)
+    ctx.obj["verbose"] = bool(verbose)
+    init_db(allow_insecure_backend=allow_insecure_backend)
 
 
 @app.command()
-def add(name: str = typer.Argument(..., help="Secret name")):
+def add(
+    ctx: typer.Context,
+    name: str = typer.Argument(..., help="Secret name"),
+):
     is_valid, error_msg = validate_secret_name(name)
     if not is_valid:
         raise typer.BadParameter(error_msg)
     existing = get_secret(name)
     if existing is not None:
-        overwrite = typer.confirm(f"Secret '{name}' exists. Overwrite?", default=False)
+        verbose = bool(ctx.obj.get("verbose", False))
+        prompt = f"Secret '{name}' exists. Overwrite?" if verbose else "Secret exists. Overwrite?"
+        overwrite = typer.confirm(prompt, default=False)
         if not overwrite:
             typer.echo("❌ Secret not added")
             raise typer.Exit(code=1)
@@ -35,11 +51,21 @@ def add(name: str = typer.Argument(..., help="Secret name")):
         typer.echo("❌ Secret value cannot be empty")
         raise typer.Exit(code=1)
     store_secret(name, value)
-    typer.echo(f"✅ Secret '{name}' stored successfully")
+    # Reduce lifetime of secret value in memory
+    value = ""  # strings are immutable; rebinding reduces reference lifetime only
+    verbose = bool(ctx.obj.get("verbose", False))
+    if verbose:
+        typer.echo(f"✅ Secret '{name}' stored successfully")
+    else:
+        typer.echo("✅ Secret stored successfully")
 
 
 @app.command()
-def get(name: str = typer.Argument(..., help="Secret name"), copy: bool = typer.Option(False, help="Copy to clipboard with auto-clear"), timeout: int = typer.Option(30, help="Clipboard auto-clear seconds")):
+def get(
+    name: str = typer.Argument(..., help="Secret name"),
+    copy: bool = typer.Option(False, help="Copy to clipboard with auto-clear"),
+    timeout: int = typer.Option(30, help="Clipboard auto-clear seconds"),
+):
     value = get_secret(name)
     if value is None:
         typer.echo(f"❌ Secret '{name}' not found")
@@ -62,9 +88,16 @@ def list_cmd():
 
 
 @app.command()
-def delete(name: str = typer.Argument(..., help="Secret name")):
+def delete(
+    ctx: typer.Context,
+    name: str = typer.Argument(..., help="Secret name"),
+):
     if delete_secret(name):
-        typer.echo(f"✅ Secret '{name}' deleted successfully")
+        verbose = bool(ctx.obj.get("verbose", False))
+        if verbose:
+            typer.echo(f"✅ Secret '{name}' deleted successfully")
+        else:
+            typer.echo("✅ Secret deleted successfully")
     else:
         typer.echo(f"❌ Secret '{name}' not found")
 
@@ -76,6 +109,7 @@ def copy_to_clipboard_with_autoclear(text: str, seconds: int = 30) -> None:
         typer.echo("ℹ️ pyperclip not installed - install with: pip install pyperclip")
         return
     try:
+        # Copy to clipboard quickly to minimize time the secret lives in our process
         pyperclip.copy(text)
         typer.echo(f"📋 Copied to clipboard. Will auto-clear in {seconds}s.")
     except Exception as e:
@@ -92,6 +126,8 @@ def copy_to_clipboard_with_autoclear(text: str, seconds: int = 30) -> None:
 
     t = threading.Thread(target=_clear_later, daemon=True)
     t.start()
+    # Reduce in-memory exposure by dropping local reference
+    text = ""
 
 
 def main():
@@ -122,7 +158,7 @@ def interactive() -> None:
                 continue
             existing = get_secret(name)
             if existing is not None:
-                if input(f"Secret '{name}' exists. Overwrite? (y/N): ").strip().lower() != 'y':
+                if input("Secret exists. Overwrite? (y/N): ").strip().lower() != 'y':
                     print("❌ Secret not added")
                     continue
             value = getpass.getpass("Enter secret value: ")
@@ -131,7 +167,9 @@ def interactive() -> None:
                 continue
             try:
                 store_secret(name, value)
-                print(f"✅ Secret '{name}' stored successfully")
+                # Reduce lifetime of secret value in memory
+                value = ""
+                print("✅ Secret stored successfully")
             except Exception as e:
                 print(f"❌ Error storing secret: {e}")
         elif choice == '2':
@@ -164,7 +202,7 @@ def interactive() -> None:
                 print("❌ Deletion cancelled")
                 continue
             if delete_secret(name):
-                print(f"✅ Secret '{name}' deleted successfully")
+                print("✅ Secret deleted successfully")
             else:
                 print(f"❌ Secret '{name}' not found")
         elif choice == '5':

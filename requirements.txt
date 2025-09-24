@@ -1,3 +1,0 @@
-pyperclip
-keyring
-typer>=0.12

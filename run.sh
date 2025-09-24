@@ -16,8 +16,8 @@ if [ ! -x "$PYEXE" ]; then
   python3 -m venv "$VENV_DIR"
   echo "Upgrading pip..."
   "$PYEXE" -m pip install --upgrade pip --disable-pip-version-check
-  echo "Installing requirements..."
-  "$PYEXE" -m pip install -r requirements.txt --disable-pip-version-check --no-input
+  echo "Installing VaultBuddy (editable) and dependencies from pyproject.toml..."
+  "$PYEXE" -m pip install -e . --disable-pip-version-check --no-input
 else
   # Quiet check: attempt to import required packages; install only if missing
   if ! "$PYEXE" - <<'PYCODE'
@@ -29,7 +29,7 @@ except Exception:
 sys.exit(0)
 PYCODE
   then
-    "$PYEXE" -m pip install -r requirements.txt --disable-pip-version-check --no-input -q >/dev/null 2>&1
+    "$PYEXE" -m pip install -e . --disable-pip-version-check --no-input -q >/dev/null 2>&1
   fi
 fi
 

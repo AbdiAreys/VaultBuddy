@@ -53,7 +53,6 @@ def store_secret(name: str, value: str) -> None:
     names = _load_index()
     names.add(name)
     _save_index(names)
-    print(f"🔐 Secret stored: {name}")
 
 
 def get_secret(name: str) -> Optional[str]:
@@ -71,13 +70,11 @@ def delete_secret(name: str) -> bool:
     try:
         keyring.delete_password(SERVICE_NAME, name)
     except PasswordDeleteError:
-        print(f"ℹ️ Secret not found: {name}")
         return False
     names = _load_index()
     if name in names:
         names.remove(name)
         _save_index(names)
-    print(f"✅ Deleted secret: {name}")
     return True
 
 

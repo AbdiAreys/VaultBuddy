@@ -17,13 +17,13 @@ if not exist "%PYEXE%" (
   python -m venv "%VENV_DIR%"
   echo Upgrading pip...
   "%PYEXE%" -m pip install --upgrade pip --disable-pip-version-check
-  echo Installing requirements...
-  "%PYEXE%" -m pip install -r requirements.txt --disable-pip-version-check --no-input
+  echo Installing VaultBuddy (editable) and dependencies from pyproject.toml...
+  "%PYEXE%" -m pip install -e . --disable-pip-version-check --no-input
 ) else (
   REM Quietly ensure required packages are present; install only if missing
   "%PYEXE%" -c "import importlib,sys; req=['keyring','typer','pyperclip']; missing=[r for r in req if importlib.util.find_spec(r) is None]; sys.exit(1 if missing else 0)" >NUL 2>&1
   if errorlevel 1 (
-    "%PYEXE%" -m pip install -r requirements.txt --disable-pip-version-check --no-input -q >NUL 2>&1
+    "%PYEXE%" -m pip install -e . --disable-pip-version-check --no-input -q >NUL 2>&1
   )
 )
 

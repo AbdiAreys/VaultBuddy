@@ -18,16 +18,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install uv
-        run: pipx install uv
-      - name: Sync deps
-        run: uv sync --dev
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
       - name: Lint (ruff)
-        run: uv run ruff check .
+        run: ruff check .
       - name: Static analysis (bandit)
-        run: uv run bandit -q -r src
+        run: bandit -q -r src
       - name: Detect secrets
-        run: uv run detect-secrets scan --baseline .secrets.baseline
+        run: detect-secrets scan --baseline .secrets.baseline
       - name: Tests (pytest)
-        run: uv run pytest -q
+        run: pytest -q
 

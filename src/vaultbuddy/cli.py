@@ -109,7 +109,7 @@ def copy_to_clipboard_with_autoclear(text: str, seconds: int = 30) -> None:
         typer.echo("ℹ️ pyperclip not installed - install with: pip install pyperclip")
         return
     try:
-        # Copy to clipboard quickly to minimize time the secret lives in our process
+        # Copy to clipboard quickly to minimize time the secret lives in the process
         pyperclip.copy(text)
         typer.echo(f"📋 Copied to clipboard. Will auto-clear in {seconds}s.")
     except Exception as e:

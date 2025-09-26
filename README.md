@@ -45,7 +45,7 @@ export VAULTBUDDY_ALLOW_INSECURE=1
 ```
 
 ## Clipboard Caveats
-- Some OS clipboard managers/history may persist secrets beyond our control.
+- Some OS clipboard managers/history may persist secrets beyond your control.
 - Auto-clear overwrites the clipboard content after the timeout, but cannot purge OS-wide history.
 - Prefer short timeouts and clear history manually where possible.
 

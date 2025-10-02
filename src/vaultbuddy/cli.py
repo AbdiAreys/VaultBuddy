@@ -139,7 +139,7 @@ def interactive() -> None:
     init_db()
     while True:
         print("\n" + "="*50)
-        print("🔐 VaultBuddy - Secure Secrets Manager")
+        print("VaultBuddy - Secure Secrets Manager")
         print("="*50)
         print("1. Add secret")
         print("2. Retrieve secret (no stdout)")
@@ -206,8 +206,8 @@ def interactive() -> None:
             else:
                 print(f"❌ Secret '{name}' not found")
         elif choice == '5':
-            print("\n🔒 Exiting VaultBuddy. Your secrets are safe!")
-            print("Goodbye! 👋")
+            print("\nExiting VaultBuddy. Your secrets are safe!")
+            print("Goodbye!")
             break
         else:
             print("❌ Invalid option. Please enter 1-5.")

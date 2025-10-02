@@ -63,24 +63,6 @@ def _save_index(names: Set[str]) -> None:
     keyring.set_password(SERVICE_NAME, INDEX_USERNAME, payload)
 
 
-def resolve_canonical_name(name: str) -> Optional[str]:
-    """Resolve the provided name to the canonical stored name (case-insensitive).
-
-    Returns the exact name as stored in the index if a case-insensitive match
-    exists; otherwise returns None.
-    """
-    names = _load_index()
-    if not names:
-        return None
-    if name in names:
-        return name
-    target = name.casefold()
-    for existing in names:
-        if existing.casefold() == target:
-            return existing
-    return None
-
-
 def _backend_identity() -> Tuple[str, str]:
     """Returns (module_path, class_name) of the active keyring backend."""
     try:
@@ -136,19 +118,15 @@ def is_secure_backend() -> Tuple[bool, str, str]:
 
 def store_secret(name: str, value: str) -> None:
     """Stores a secret in the OS keyring and updates the index."""
-    canonical = resolve_canonical_name(name) or name
-    keyring.set_password(SERVICE_NAME, canonical, value)
+    keyring.set_password(SERVICE_NAME, name, value)
     names = _load_index()
-    names.add(canonical)
+    names.add(name)
     _save_index(names)
 
 
 def get_secret(name: str) -> Optional[str]:
     """Retrieves a secret from the OS keyring by name."""
-    canonical = resolve_canonical_name(name)
-    if canonical is None:
-        return None
-    return keyring.get_password(SERVICE_NAME, canonical)
+    return keyring.get_password(SERVICE_NAME, name)
 
 
 def list_secrets() -> List[str]:
@@ -158,16 +136,13 @@ def list_secrets() -> List[str]:
 
 def delete_secret(name: str) -> bool:
     """Deletes a secret by name from the OS keyring and updates the index."""
-    canonical = resolve_canonical_name(name)
-    if canonical is None:
-        return False
     try:
-        keyring.delete_password(SERVICE_NAME, canonical)
+        keyring.delete_password(SERVICE_NAME, name)
     except PasswordDeleteError:
         return False
     names = _load_index()
-    if canonical in names:
-        names.remove(canonical)
+    if name in names:
+        names.remove(name)
         _save_index(names)
     return True
 

@@ -1,12 +1,62 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, clipboard } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+
+/**
+ * Sanitizes error messages to prevent information leakage
+ */
+function sanitizeErrorMessage(error) {
+  let message = error.message || 'Unknown error';
+  message = message.replace(/[A-Z]:\\[^\s"']+/g, '[path]');
+  message = message.replace(/\/[^\s"']+/g, '[path]');
+  if (message.length > 150) {
+    message = message.substring(0, 150) + '...';
+  }
+  return message;
+}
+
+/**
+ * Simple rate limiter to prevent IPC call abuse
+ * Limits to 100 requests per action per minute
+ */
+const rateLimiter = new Map();
+const RATE_LIMIT = 100; // max 100 requests per minute per action
+const RATE_WINDOW = 60000; // 1 minute in milliseconds
+
+function checkRateLimit(action) {
+  const now = Date.now();
+  const timestamps = rateLimiter.get(action) || [];
+  
+  // Remove timestamps older than rate window
+  const recentTimestamps = timestamps.filter(t => now - t < RATE_WINDOW);
+  
+  // Check if limit exceeded
+  if (recentTimestamps.length >= RATE_LIMIT) {
+    return false;
+  }
+  
+  // Add current timestamp and update
+  recentTimestamps.push(now);
+  rateLimiter.set(action, recentTimestamps);
+  
+  return true;
+}
+
+// Import native vault service (replaces Python backend)
+let vaultService;
+try {
+  console.log('Loading vault service...');
+  vaultService = require('../services/vault-service');
+  console.log('Vault service loaded successfully');
+} catch (error) {
+  console.error('CRITICAL: Failed to load vault service:', error);
+  console.error('Error stack:', error.stack);
+  app.quit();
+}
 
 // Check if running in development
 const isDev = process.env.NODE_ENV === 'development' || process.env.ELECTRON_IS_DEV === 'true';
 
 let mainWindow;
-let pythonProcess = null;
 
 function createWindow() {
   // Create the browser window
@@ -24,6 +74,23 @@ function createWindow() {
     icon: path.join(__dirname, 'assets/icon.png'), // Add icon later
     show: false,
     titleBarStyle: 'default'
+  });
+
+  // Set Content Security Policy
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+          "style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' data: https:; " +
+          "font-src 'self' data:; " +
+          "connect-src 'self' http://localhost:*"
+        ]
+      }
+    });
   });
 
   // Load the app
@@ -48,51 +115,26 @@ function createWindow() {
   });
 }
 
-// Start Python backend process
-function startPythonBackend() {
-  if (pythonProcess) return;
-
+// Initialize vault service
+async function initializeVault() {
   try {
-    // Try to find the Python executable and VaultBuddy
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-    const vaultbuddyPath = isDev 
-      ? path.join(__dirname, '../../src/main.py')
-      : path.join(process.resourcesPath, 'python/main.py');
-
-    pythonProcess = spawn(pythonCmd, [vaultbuddyPath, '--api-mode'], {
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    pythonProcess.stdout.on('data', (data) => {
-      console.log(`Python stdout: ${data}`);
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      console.error(`Python stderr: ${data}`);
-    });
-
-    pythonProcess.on('close', (code) => {
-      console.log(`Python process exited with code ${code}`);
-      pythonProcess = null;
-    });
-
+    const result = await vaultService.initialize();
+    if (!result.success) {
+      console.error('Failed to initialize vault service:', result.error);
+      dialog.showErrorBox('Vault Initialization Failed', 
+        result.error || 'Could not initialize the vault service.');
+    }
   } catch (error) {
-    console.error('Failed to start Python backend:', error);
-  }
-}
-
-// Stop Python backend process
-function stopPythonBackend() {
-  if (pythonProcess) {
-    pythonProcess.kill();
-    pythonProcess = null;
+    console.error('Failed to initialize vault service:', error);
+    dialog.showErrorBox('Vault Initialization Failed', 
+      'An unexpected error occurred while initializing the vault service.');
   }
 }
 
 // App event handlers
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await initializeVault();
   createWindow();
-  startPythonBackend();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -102,90 +144,92 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  stopPythonBackend();
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on('before-quit', () => {
-  stopPythonBackend();
-});
-
-// IPC handlers for communicating with Python backend via API
+// IPC handlers for vault operations using native service
 ipcMain.handle('vault-api-call', async (event, action, params = {}) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-      const vaultbuddyPath = isDev 
-        ? path.join(__dirname, '../../src/main.py')
-        : path.join(process.resourcesPath, 'python/main.py');
+  try {
+    // Apply rate limiting
+    if (!checkRateLimit(action)) {
+      return { 
+        success: false, 
+        error: 'Rate limit exceeded. Please wait before trying again.' 
+      };
+    }
 
-      const child = spawn(pythonCmd, [vaultbuddyPath, '--api-mode'], {
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
+    let result;
 
-      let responseReceived = false;
-      let stdout = '';
-      let stderr = '';
+    switch (action) {
+      case 'list':
+        result = await vaultService.listSecrets();
+        break;
 
-      child.stdout.on('data', (data) => {
-        stdout += data.toString();
-        
-        // Try to parse JSON responses
-        const lines = stdout.split('\n');
-        for (let i = 0; i < lines.length - 1; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            try {
-              const response = JSON.parse(line);
-              if (!responseReceived) {
-                responseReceived = true;
-                
-                // Send the command after API is ready
-                if (response.success && response.data && response.data.message === "VaultBuddy API ready") {
-                  const command = JSON.stringify({ action, params });
-                  child.stdin.write(command + '\n');
-                }
-              } else {
-                // This is the actual response to our command
-                child.kill();
-                resolve(response);
-                return;
-              }
-            } catch (e) {
-              // Not a JSON response, continue
-            }
+      case 'add':
+        if (!params.name) {
+          result = { success: false, error: "Missing 'name' parameter" };
+        } else {
+          result = await vaultService.addSecret(params.name, params.value);
+        }
+        break;
+
+      case 'get':
+        if (!params.name) {
+          result = { success: false, error: "Missing 'name' parameter" };
+        } else {
+          result = await vaultService.getSecret(params.name);
+        }
+        break;
+
+      case 'copy':
+        if (!params.name) {
+          result = { success: false, error: "Missing 'name' parameter" };
+        } else {
+          const getResult = await vaultService.getSecret(params.name);
+          if (getResult.success) {
+            result = { 
+              success: true, 
+              message: 'Secret retrieved successfully',
+              has_value: true,
+              value: getResult.value
+            };
+          } else {
+            result = getResult;
           }
         }
-      });
+        break;
 
-      child.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-
-      child.on('close', (code) => {
-        if (!responseReceived) {
-          resolve({ success: false, error: stderr || 'No response from Python backend' });
+      case 'delete':
+        if (!params.name) {
+          result = { success: false, error: "Missing 'name' parameter" };
+        } else {
+          result = await vaultService.deleteSecret(params.name);
         }
-      });
+        break;
 
-      child.on('error', (error) => {
-        resolve({ success: false, error: error.message });
-      });
+      case 'status':
+        result = await vaultService.getStatus();
+        break;
 
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        if (!responseReceived) {
-          child.kill();
-          resolve({ success: false, error: 'Timeout waiting for Python backend' });
+      case 'update':
+        if (!params.name) {
+          result = { success: false, error: "Missing 'name' parameter" };
+        } else {
+          result = await vaultService.updateSecret(params.name, params.value);
         }
-      }, 10000);
+        break;
 
-    } catch (error) {
-      resolve({ success: false, error: error.message });
+      default:
+        result = { success: false, error: `Unknown action: ${action}` };
     }
-  });
+
+    return result;
+  } catch (error) {
+    console.error('Vault API error:', error);
+    return { success: false, error: sanitizeErrorMessage(error) };
+  }
 });
 
 // Handle secret input (for adding secrets)
@@ -209,10 +253,8 @@ ipcMain.handle('get-secret-input', async (event, message) => {
   }
 });
 
-// Handle clipboard operations
+// Handle clipboard operations with auto-clear
 ipcMain.handle('copy-to-clipboard', async (event, text, timeout = 30) => {
-  const { clipboard } = require('electron');
-  
   try {
     clipboard.writeText(text);
     
@@ -221,8 +263,9 @@ ipcMain.handle('copy-to-clipboard', async (event, text, timeout = 30) => {
       clipboard.clear();
     }, timeout * 1000);
     
-    return { success: true };
+    return { success: true, message: `Copied to clipboard. Will auto-clear in ${timeout}s.` };
   } catch (error) {
-    return { success: false, error: error.message };
+    console.error('Clipboard error:', error);
+    return { success: false, error: sanitizeErrorMessage(error) };
   }
 });

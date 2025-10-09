@@ -1,24 +1,12 @@
-VaultBuddy Security Posture
+# VaultBuddy Security
 
-- Secrets stored only in the OS keyring backend; no local database/files
-- No plaintext secrets printed to stdout; retrieval uses clipboard only
-- Clipboard auto-clear runs in a background thread after a configurable timeout
-- Secret names (metadata) are visible in `list`; add/delete messages are quiet by default
+## Storage
+Secrets stored exclusively in OS keyring (Windows Credential Manager, macOS Keychain, Linux Secret Service). No local files or databases. Backend validation on startup blocks insecure backends (plaintext, null, fail). Override with `--allow-insecure-backend` flag (not recommended).
 
-Backend Trust
-- On startup we check the keyring backend. Secure backends (Windows, macOS, Secret Service, KWallet) are allowed.
-- Insecure/unknown backends (e.g., `keyrings.alt` plaintext, null, fail, chained) are blocked by default.
-- You may override with `--allow-insecure-backend` or `VAULTBUDDY_ALLOW_INSECURE=1` (NOT RECOMMENDED).
+## Protection
+Zero plaintext output - clipboard-only retrieval with 30s auto-clear. Input validation on all secret names. Rate limiting (100 req/min). Audit logging for all operations. CSP headers prevent XSS. Error messages sanitized to prevent path leakage.
 
-Clipboard Caveats
-- Some OS clipboard managers/history persist entries beyond app control.
-- Auto-clear replaces clipboard content but cannot purge OS history.
+## Limitations
+Python/JS strings cannot be securely zeroized in memory. OS clipboard managers may persist history beyond app control. Secret names (metadata) visible in list command. Dependencies pinned - audit with `pip-audit`.
 
-Memory Handling
-- Python strings cannot be securely zeroized. We minimize lifetime and drop references ASAP.
-
-Supply Chain
-- Dependencies are pinned. Use `uv sync` to generate a lockfile for reproducible installs.
-- Static analysis: ruff, bandit, detect-secrets. Audit with pip-audit.
-
-Report security issues privately to the maintainer.
+**Report security issues privately to the maintainer.**

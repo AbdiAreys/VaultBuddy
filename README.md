@@ -2,21 +2,34 @@
 
 Local-first secrets manager with OS-native encryption. Python CLI + Electron desktop app.
 
-## Setup
+## Installation
 
-**CLI:**
+### Desktop App (Recommended)
+
+**Windows:**
+1. Download `VaultBuddy Setup 0.1.0.exe` from [Releases](https://github.com/AbdiAreys/VaultBuddy/releases)
+2. Run the installer
+3. Launch VaultBuddy from Start Menu
+
+**Requirements:** Windows user password set (for DPAPI encryption)
+
+### CLI (Advanced Users)
+
+**Windows:**
 ```bash
-# Windows: scripts\run.bat
-# macOS/Linux: scripts/run.sh
+scripts\run.bat
 ```
 
-**Desktop App:**
+**macOS/Linux:**
 ```bash
-cd frontend && npm install && npm run electron
-# Or use: VaultBuddy Setup 0.1.0.exe
+scripts/run.sh
 ```
 
-Requires Python 3.10+ (CLI) or Windows password set (desktop). Desktop uses Electron safeStorage (DPAPI/Keychain/libsecret). CLI uses OS keyring backends.
+**Requirements:** Python 3.10+
+
+---
+
+**Developers:** See [`docs/FRONTEND_SETUP.md`](docs/FRONTEND_SETUP.md) for building from source.
 
 ## Features
 
@@ -24,14 +37,16 @@ Cross-platform secrets manager with dual interfaces. CLI offers terminal access 
 
 ## Usage
 
-```bash
-# CLI
-vaultbuddy add mysecret
-vaultbuddy get mysecret --copy
-vaultbuddy list
+**Desktop App:**
+- Click the app icon or search "VaultBuddy" in Start Menu
+- Use the GUI to add, view, copy, and delete secrets
 
-# Desktop  
-Run VaultBuddy.exe or VaultBuddy.lnk
+**CLI:**
+```bash
+vaultbuddy add mysecret      # Add a secret
+vaultbuddy get mysecret --copy  # Copy to clipboard
+vaultbuddy list              # List all secrets
+vaultbuddy delete mysecret   # Delete a secret
 ```
 
 ## Security

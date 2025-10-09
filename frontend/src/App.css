@@ -2,8 +2,8 @@
   width: 100%;
   max-width: 1200px;
   height: 90vh;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.98);
+  /* Removed backdrop-filter for performance - causes repaint delays */
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   overflow: hidden;

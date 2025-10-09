@@ -97,7 +97,7 @@ function createWindow() {
     icon: path.join(__dirname, 'assets/icon.png'), // Add icon later
     show: false,
     frame: true,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#667eea', // Match React gradient start color
     titleBarStyle: 'default'
   });
 
@@ -112,8 +112,8 @@ function createWindow() {
             ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +  // Dev mode needs these for React HMR
               "style-src 'self' 'unsafe-inline'; " +
               "connect-src 'self' http://localhost:* ws://localhost:*; "
-            : "script-src 'self'; " +  // Production: strict CSP
-              "style-src 'self'; " +
+            : "script-src 'self'; " +  // Production: allow inline styles for React
+              "style-src 'self' 'unsafe-inline'; " +  // Required for React inline styles during hydration
               "connect-src 'self'; "
           ) +
           "img-src 'self' data:; " +
@@ -133,9 +133,29 @@ function createWindow() {
   
   mainWindow.loadURL(startUrl);
 
-  // Show window when ready to prevent visual flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
+  // Prevent flicker: wait for first paint before showing window
+  mainWindow.webContents.once('did-finish-load', () => {
+    // Use requestAnimationFrame to wait for actual paint
+    mainWindow.webContents.executeJavaScript(`
+      new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
+    `).then(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }).catch(err => {
+      console.error('Error waiting for paint:', err);
+      // Fallback: show anyway
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+      }
+    });
   });
 
   // Open DevTools in development
@@ -165,9 +185,10 @@ async function initializeVault() {
 }
 
 // App event handlers
-app.whenReady().then(async () => {
-  await initializeVault();
+app.whenReady().then(() => {
+  // Create window immediately, initialize vault in parallel
   createWindow();
+  initializeVault(); // Don't await - initialize in background
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

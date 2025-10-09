@@ -32,7 +32,12 @@ function App() {
 
   const loadSecrets = async () => {
     if (!window.electronAPI) {
-      setSecrets(['example-secret', 'api-key', 'database-password']); // Mock data for web
+      // Only show mock data in development mode
+      if (process.env.NODE_ENV === 'development') {
+        setSecrets(['example-secret', 'api-key', 'database-password']); // Mock data for web
+      } else {
+        showStatus('Desktop application required for vault operations', 'error', 5000);
+      }
       return;
     }
 
@@ -53,8 +58,12 @@ function App() {
 
   const handleAddSecret = async (name, value) => {
     if (!window.electronAPI) {
-      setSecrets(prev => [...prev, name]);
-      showStatus('Secret added successfully (mock)', 'success');
+      if (process.env.NODE_ENV === 'development') {
+        setSecrets(prev => [...prev, name]);
+        showStatus('Secret added successfully (mock)', 'success');
+      } else {
+        showStatus('Desktop application required', 'error');
+      }
       setShowAddForm(false);
       return;
     }
@@ -78,8 +87,12 @@ function App() {
 
   const handleDeleteSecret = async (name) => {
     if (!window.electronAPI) {
-      setSecrets(prev => prev.filter(s => s !== name));
-      showStatus('Secret deleted successfully (mock)', 'success');
+      if (process.env.NODE_ENV === 'development') {
+        setSecrets(prev => prev.filter(s => s !== name));
+        showStatus('Secret deleted successfully (mock)', 'success');
+      } else {
+        showStatus('Desktop application required', 'error');
+      }
       setSelectedSecret(null);
       return;
     }
@@ -103,17 +116,28 @@ function App() {
 
   const handleCopySecret = async (name) => {
     if (!window.electronAPI) {
-      showStatus('Secret copied to clipboard (mock)', 'success');
+      if (process.env.NODE_ENV === 'development') {
+        showStatus('Secret copied to clipboard (mock)', 'success');
+      } else {
+        showStatus('Desktop application required', 'error');
+      }
       return;
     }
 
     setLoading(true);
     try {
+      // First, retrieve the secret value
       const result = await window.electronAPI.vaultApiCall('copy', { name });
-      if (result.success) {
-        showStatus('Secret copied to clipboard (auto-clears in 30s)', 'success');
+      if (result.success && result.value) {
+        // Now actually copy it to clipboard with auto-clear
+        const clipResult = await window.electronAPI.copyToClipboard(result.value, 30);
+        if (clipResult.success) {
+          showStatus('Secret copied to clipboard (auto-clears in 30s)', 'success');
+        } else {
+          showStatus('Failed to copy to clipboard: ' + (clipResult.error || 'Unknown error'), 'error');
+        }
       } else {
-        showStatus('Failed to copy secret: ' + (result.error || 'Unknown error'), 'error');
+        showStatus('Failed to get secret: ' + (result.error || 'Unknown error'), 'error');
       }
     } catch (error) {
       showStatus('Error copying secret: ' + error.message, 'error');

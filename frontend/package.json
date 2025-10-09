@@ -73,14 +73,20 @@
           "arch": ["x64"]
         }
       ],
-      "sign": null
+      "sign": null,
+      "asar": true,
+      "asarUnpack": "**\\*.{node,dll}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "VaultBuddy"
+      "shortcutName": "VaultBuddy",
+      "runAfterFinish": false,
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
     },
     "linux": {
       "target": "AppImage"

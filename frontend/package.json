@@ -85,8 +85,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "VaultBuddy",
       "runAfterFinish": false,
-      "deleteAppDataOnUninstall": false,
-      "include": "build/installer.nsh"
+      "deleteAppDataOnUninstall": false
     },
     "linux": {
       "target": "AppImage"

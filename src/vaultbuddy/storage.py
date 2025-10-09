@@ -1,8 +1,7 @@
 """
 OS keyring-backed storage for secrets and a minimal index for listing.
 
-Also includes a migration helper from the legacy SQLite database used in
-earlier versions of VaultBuddy.
+
 """
 
 from typing import Optional, List, Set, Tuple

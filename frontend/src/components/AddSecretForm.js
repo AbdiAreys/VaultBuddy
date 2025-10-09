@@ -13,10 +13,12 @@ function AddSecretForm({ onSubmit, onCancel, loading }) {
     
     if (!name.trim()) {
       newErrors.name = 'Secret name is required';
-    } else if (name.length < 2) {
-      newErrors.name = 'Secret name must be at least 2 characters';
-    } else if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-      newErrors.name = 'Secret name can only contain letters, numbers, hyphens, and underscores';
+    } else if (name.length > 100) {
+      newErrors.name = 'Secret name must be less than 100 characters';
+    } else if (/[\n\r\t]/.test(name)) {
+      newErrors.name = 'Secret name cannot contain whitespace control characters';
+    } else if (/["';\\/:*?<>|]/.test(name)) {
+      newErrors.name = 'Secret name contains invalid characters';
     }
     
     if (!value.trim()) {
@@ -85,7 +87,7 @@ function AddSecretForm({ onSubmit, onCancel, loading }) {
           />
           {errors.name && <span className="error-message">{errors.name}</span>}
           <span className="help-text">
-            Use letters, numbers, hyphens, and underscores only
+            Cannot contain: " ' ; \ / : * ? &lt; &gt; | or control characters
           </span>
         </div>
         

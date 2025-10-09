@@ -15,11 +15,12 @@ function sanitizeErrorMessage(error) {
 }
 
 /**
- * Simple rate limiter to prevent IPC call abuse
- * Limits to 100 requests per action per minute
+ * Enhanced rate limiter with exponential backoff to prevent IPC call abuse
+ * Limits to 10 requests per action per minute, with backoff for repeated failures
  */
 const rateLimiter = new Map();
-const RATE_LIMIT = 100; // max 100 requests per minute per action
+const failureTracker = new Map();
+const RATE_LIMIT = 10; // max 10 requests per minute per action (hardened from 100)
 const RATE_WINDOW = 60000; // 1 minute in milliseconds
 
 function checkRateLimit(action) {
@@ -31,14 +32,35 @@ function checkRateLimit(action) {
   
   // Check if limit exceeded
   if (recentTimestamps.length >= RATE_LIMIT) {
-    return false;
+    return { allowed: false, reason: 'Rate limit exceeded' };
+  }
+  
+  // Check exponential backoff for failures
+  const failures = failureTracker.get(action) || { count: 0, lastFail: 0 };
+  if (failures.count > 5) {
+    const backoffTime = Math.min(Math.pow(2, failures.count) * 1000, 300000); // Max 5min
+    if (now - failures.lastFail < backoffTime) {
+      const remainingTime = Math.ceil((backoffTime - (now - failures.lastFail)) / 1000);
+      return { allowed: false, reason: `Too many failures. Retry in ${remainingTime}s` };
+    }
   }
   
   // Add current timestamp and update
   recentTimestamps.push(now);
   rateLimiter.set(action, recentTimestamps);
   
-  return true;
+  return { allowed: true };
+}
+
+function recordFailure(action) {
+  const failures = failureTracker.get(action) || { count: 0, lastFail: 0 };
+  failures.count += 1;
+  failures.lastFail = Date.now();
+  failureTracker.set(action, failures);
+}
+
+function resetFailures(action) {
+  failureTracker.delete(action);
 }
 
 // Import native vault service (replaces Python backend)
@@ -76,18 +98,26 @@ function createWindow() {
     titleBarStyle: 'default'
   });
 
-  // Set Content Security Policy
+  // Set Content Security Policy (Hardened)
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           "default-src 'self'; " +
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-          "style-src 'self' 'unsafe-inline'; " +
-          "img-src 'self' data: https:; " +
+          (isDev 
+            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +  // Dev mode needs these for React HMR
+              "style-src 'self' 'unsafe-inline'; " +
+              "connect-src 'self' http://localhost:* ws://localhost:*; "
+            : "script-src 'self'; " +  // Production: strict CSP
+              "style-src 'self'; " +
+              "connect-src 'self'; "
+          ) +
+          "img-src 'self' data:; " +
           "font-src 'self' data:; " +
-          "connect-src 'self' http://localhost:*"
+          "base-uri 'none'; " +
+          "form-action 'none'; " +
+          "frame-ancestors 'none';"
         ]
       }
     });
@@ -152,11 +182,13 @@ app.on('window-all-closed', () => {
 // IPC handlers for vault operations using native service
 ipcMain.handle('vault-api-call', async (event, action, params = {}) => {
   try {
-    // Apply rate limiting
-    if (!checkRateLimit(action)) {
+    // Apply enhanced rate limiting with backoff
+    const rateLimitCheck = checkRateLimit(action);
+    if (!rateLimitCheck.allowed) {
+      recordFailure(action);
       return { 
         success: false, 
-        error: 'Rate limit exceeded. Please wait before trying again.' 
+        error: rateLimitCheck.reason || 'Rate limit exceeded. Please wait before trying again.' 
       };
     }
 
@@ -187,16 +219,25 @@ ipcMain.handle('vault-api-call', async (event, action, params = {}) => {
         if (!params.name) {
           result = { success: false, error: "Missing 'name' parameter" };
         } else {
+          // Security Fix: Perform clipboard operation entirely in main process
+          // Secret value NEVER crosses IPC boundary
           const getResult = await vaultService.getSecret(params.name);
-          if (getResult.success) {
+          if (getResult.success && getResult.value) {
+            const timeout = params.timeout || 30;
+            clipboard.writeText(getResult.value);
+            
+            // Auto-clear after timeout
+            setTimeout(() => {
+              clipboard.clear();
+            }, timeout * 1000);
+            
             result = { 
               success: true, 
-              message: 'Secret retrieved successfully',
-              has_value: true,
-              value: getResult.value
+              message: `Secret copied to clipboard (auto-clears in ${timeout}s)`
             };
+            // Note: value is NOT included in result - stays in main process only
           } else {
-            result = getResult;
+            result = { success: false, error: getResult.error || 'Failed to retrieve secret' };
           }
         }
         break;
@@ -225,9 +266,17 @@ ipcMain.handle('vault-api-call', async (event, action, params = {}) => {
         result = { success: false, error: `Unknown action: ${action}` };
     }
 
+    // Track success/failure for exponential backoff
+    if (result.success) {
+      resetFailures(action);
+    } else {
+      recordFailure(action);
+    }
+
     return result;
   } catch (error) {
     console.error('Vault API error:', error);
+    recordFailure(action);
     return { success: false, error: sanitizeErrorMessage(error) };
   }
 });

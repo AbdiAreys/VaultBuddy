@@ -126,18 +126,13 @@ function App() {
 
     setLoading(true);
     try {
-      // First, retrieve the secret value
-      const result = await window.electronAPI.vaultApiCall('copy', { name });
-      if (result.success && result.value) {
-        // Now actually copy it to clipboard with auto-clear
-        const clipResult = await window.electronAPI.copyToClipboard(result.value, 30);
-        if (clipResult.success) {
-          showStatus('Secret copied to clipboard (auto-clears in 30s)', 'success');
-        } else {
-          showStatus('Failed to copy to clipboard: ' + (clipResult.error || 'Unknown error'), 'error');
-        }
+      // Security Fix: Copy action now happens entirely in main process
+      // Secret value never enters renderer process
+      const result = await window.electronAPI.vaultApiCall('copy', { name, timeout: 30 });
+      if (result.success) {
+        showStatus(result.message || 'Secret copied to clipboard (auto-clears in 30s)', 'success');
       } else {
-        showStatus('Failed to get secret: ' + (result.error || 'Unknown error'), 'error');
+        showStatus('Failed to copy secret: ' + (result.error || 'Unknown error'), 'error');
       }
     } catch (error) {
       showStatus('Error copying secret: ' + error.message, 'error');

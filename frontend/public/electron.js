@@ -1,6 +1,11 @@
 const { app, BrowserWindow, ipcMain, dialog, clipboard } = require('electron');
 const path = require('path');
 
+// Disable hardware acceleration to prevent GPU process crashes
+app.commandLine.appendSwitch('--disable-gpu');
+app.commandLine.appendSwitch('--disable-gpu-sandbox');
+app.commandLine.appendSwitch('--disable-software-rasterizer');
+
 /**
  * Sanitizes error messages to prevent information leakage
  */

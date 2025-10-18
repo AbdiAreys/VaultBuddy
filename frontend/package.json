@@ -1,36 +1,23 @@
 {
   "name": "vaultbuddy-frontend",
-  "version": "0.1.0",
-  "description": "VaultBuddy React/Electron Frontend",
-  "main": "public/electron.js",
-  "homepage": "./",
+  "version": "1.0.0",
+  "description": "VaultBuddy Frontend - Cybersecurity Hacker Command-Line UI",
   "private": true,
   "dependencies": {
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^14.5.2",
-    "lucide-react": "^0.263.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "@types/node": "^16.18.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.0",
-    "electron": "^27.0.0",
-    "electron-builder": "^24.13.3",
-    "electron-is-dev": "^2.0.0",
-    "wait-on": "^7.0.1"
+    "typescript": "^4.9.5",
+    "web-vitals": "^3.0.0"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron-pack": "npm run build && electron-builder",
-    "preelectron-pack": "npm run build"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -50,45 +37,9 @@
       "last 1 safari version"
     ]
   },
-  "build": {
-    "appId": "com.vaultbuddy.app",
-    "productName": "VaultBuddy",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "build/**/*",
-      "public/electron.js",
-      "public/preload.js",
-      "services/**/*",
-      "node_modules/**/*"
-    ],
-    "mac": {
-      "category": "public.app-category.utilities"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
-      ],
-      "sign": null,
-      "asar": true,
-      "asarUnpack": "**\\*.{node,dll}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "allowElevation": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "VaultBuddy",
-      "runAfterFinish": false,
-      "deleteAppDataOnUninstall": false
-    },
-    "linux": {
-      "target": "AppImage"
-    }
+  "proxy": "http://localhost:8000",
+  "overrides": {
+    "ajv": "^8.12.0",
+    "ajv-keywords": "^5.1.0"
   }
 }

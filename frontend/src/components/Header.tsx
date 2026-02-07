@@ -16,7 +16,7 @@ const Header: React.FC<HeaderProps> = ({ onAddSecret, onRefresh, loading }) => {
             <div className="logo-icon">🔐</div>
             <div className="logo-text">
               <h1>VAULTBUDDY</h1>
-              <span className="logo-subtitle">SECURE_VAULT_ACCESS</span>
+              <span className="logo-subtitle">Secure Vault Access</span>
             </div>
           </div>
         </div>
@@ -30,10 +30,10 @@ const Header: React.FC<HeaderProps> = ({ onAddSecret, onRefresh, loading }) => {
             {loading ? (
               <>
                 <span className="loading-spinner"></span>
-                REFRESHING...
+                Loading...
               </>
             ) : (
-              'REFRESH'
+              '↻ Refresh'
             )}
           </button>
           
@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ onAddSecret, onRefresh, loading }) => {
             className="btn-primary"
             onClick={onAddSecret}
           >
-            + ADD_SECRET
+            + Add Secret
           </button>
         </div>
       </div>
@@ -49,11 +49,11 @@ const Header: React.FC<HeaderProps> = ({ onAddSecret, onRefresh, loading }) => {
       <div className="header-status">
         <div className="status-indicator">
           <span className="status-dot"></span>
-          <span>SYSTEM_STATUS: SECURE</span>
+          <span>System: Online</span>
         </div>
         <div className="status-indicator">
           <span className="status-dot"></span>
-          <span>ENCRYPTION: ACTIVE</span>
+          <span>Encryption: Active</span>
         </div>
       </div>
     </header>

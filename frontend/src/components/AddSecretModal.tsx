@@ -62,7 +62,7 @@ const AddSecretModal: React.FC<AddSecretModalProps> = ({ onClose, onAddSecret })
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>ADD_NEW_SECRET</h2>
+          <h2>Add New Secret</h2>
           <button className="close-button" onClick={handleClose}>
             ✕
           </button>
@@ -71,7 +71,7 @@ const AddSecretModal: React.FC<AddSecretModalProps> = ({ onClose, onAddSecret })
         <form onSubmit={handleSubmit} className="secret-form">
           <div className="form-group">
             <label htmlFor="secret-name" className="form-label">
-              SECRET_NAME:
+              Secret Name
             </label>
             <input
               id="secret-name"
@@ -89,7 +89,7 @@ const AddSecretModal: React.FC<AddSecretModalProps> = ({ onClose, onAddSecret })
 
           <div className="form-group">
             <label htmlFor="secret-value" className="form-label">
-              SECRET_VALUE:
+              Secret Value
             </label>
             <div className="password-input-container">
               <input
@@ -117,7 +117,7 @@ const AddSecretModal: React.FC<AddSecretModalProps> = ({ onClose, onAddSecret })
 
           <div className="form-group">
             <label htmlFor="confirm-value" className="form-label">
-              CONFIRM_VALUE:
+              Confirm Value
             </label>
             <input
               id="confirm-value"
@@ -135,10 +135,10 @@ const AddSecretModal: React.FC<AddSecretModalProps> = ({ onClose, onAddSecret })
 
           <div className="form-actions">
             <button type="button" className="btn-secondary" onClick={handleClose}>
-              CANCEL
+              Cancel
             </button>
             <button type="submit" className="btn-primary">
-              STORE_SECRET
+              Store Secret
             </button>
           </div>
         </form>

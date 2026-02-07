@@ -22,7 +22,7 @@ const SecretCard: React.FC<SecretCardProps> = ({ secret, onDelete, onCopy }) => 
   };
 
   const formatDate = (date?: Date) => {
-    if (!date) return 'UNKNOWN';
+    if (!date) return 'Unknown';
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -43,11 +43,11 @@ const SecretCard: React.FC<SecretCardProps> = ({ secret, onDelete, onCopy }) => 
         <div className="secret-info">
           <h3 className="secret-name">{secret.name}</h3>
           <span className="secret-date">
-            MODIFIED: {formatDate(secret.lastModified)}
+            Modified: {formatDate(secret.lastModified)}
           </span>
         </div>
         <div className="secret-status">
-          <span className="status-indicator">SECURE</span>
+          <span className="status-indicator">Secure</span>
         </div>
       </div>
 
@@ -57,7 +57,7 @@ const SecretCard: React.FC<SecretCardProps> = ({ secret, onDelete, onCopy }) => 
           onClick={handleCopy}
           title="Copy to clipboard"
         >
-          📋 COPY
+          📋 Copy
         </button>
         
         {!showConfirmDelete ? (
@@ -66,7 +66,7 @@ const SecretCard: React.FC<SecretCardProps> = ({ secret, onDelete, onCopy }) => 
             onClick={() => setShowConfirmDelete(true)}
             title="Delete secret"
           >
-            🗑️ DELETE
+            🗑️ Delete
           </button>
         ) : (
           <div className="confirm-delete">
@@ -75,14 +75,14 @@ const SecretCard: React.FC<SecretCardProps> = ({ secret, onDelete, onCopy }) => 
               onClick={handleDelete}
               title="Confirm deletion"
             >
-              ✓ CONFIRM
+              ✓ Confirm
             </button>
             <button
               className="btn-secondary small"
               onClick={() => setShowConfirmDelete(false)}
               title="Cancel deletion"
             >
-              ✗ CANCEL
+              ✗ Cancel
             </button>
           </div>
         )}
@@ -90,8 +90,8 @@ const SecretCard: React.FC<SecretCardProps> = ({ secret, onDelete, onCopy }) => 
 
       <div className="secret-footer">
         <div className="security-indicators">
-          <span className="indicator">ENCRYPTED</span>
-          <span className="indicator">OS_KEYRING</span>
+          <span className="indicator">Encrypted</span>
+          <span className="indicator">OS Keyring</span>
         </div>
       </div>
     </div>

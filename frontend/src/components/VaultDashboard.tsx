@@ -35,8 +35,8 @@ const VaultDashboard: React.FC<VaultDashboardProps> = ({
       <div className="vault-dashboard loading">
         <div className="loading-container">
           <div className="loading-spinner large"></div>
-          <h2>ACCESSING_SECURE_VAULT...</h2>
-          <p>Initializing encryption protocols...</p>
+          <h2>Accessing Vault...</h2>
+          <p>Decrypting secure storage</p>
         </div>
       </div>
     );
@@ -45,15 +45,15 @@ const VaultDashboard: React.FC<VaultDashboardProps> = ({
   return (
     <div className="vault-dashboard">
       <div className="dashboard-header">
-        <h2>SECURE_VAULT_DASHBOARD</h2>
+        <h2>Secure Vault</h2>
         <div className="dashboard-stats">
           <div className="stat-item">
-            <span className="stat-label">TOTAL_SECRETS:</span>
-            <span className="stat-value text-green">{secrets.length}</span>
+            <span className="stat-label">Secrets</span>
+            <span className="stat-value">{secrets.length}</span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">STATUS:</span>
-            <span className="stat-value text-green">SECURE</span>
+            <span className="stat-label">Status</span>
+            <span className="stat-value">Online</span>
           </div>
         </div>
       </div>
@@ -62,7 +62,7 @@ const VaultDashboard: React.FC<VaultDashboardProps> = ({
         <div className="search-container">
           <input
             type="search"
-            placeholder="SEARCH_SECRETS..."
+            placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -70,14 +70,14 @@ const VaultDashboard: React.FC<VaultDashboardProps> = ({
         </div>
         
         <div className="sort-container">
-          <label className="sort-label">SORT_BY:</label>
+          <label className="sort-label">Sort:</label>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'name' | 'date')}
             className="sort-select"
           >
-            <option value="name">NAME</option>
-            <option value="date">DATE_MODIFIED</option>
+            <option value="name">Name</option>
+            <option value="date">Modified</option>
           </select>
         </div>
       </div>
@@ -86,11 +86,11 @@ const VaultDashboard: React.FC<VaultDashboardProps> = ({
         {filteredSecrets.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">🔒</div>
-            <h3>NO_SECRETS_FOUND</h3>
+            <h3>No Secrets Found</h3>
             <p>
               {searchTerm 
-                ? 'No secrets match your search criteria.'
-                : 'Your vault is empty. Add your first secret to get started.'
+                ? 'No secrets match your search.'
+                : 'Vault is empty. Add a secret to get started.'
               }
             </p>
           </div>

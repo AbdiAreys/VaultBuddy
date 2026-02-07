@@ -1,0 +1,151 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pyinstaller
+          
+      - name: Install Frontend dependencies
+        working-directory: frontend
+        run: npm ci
+        
+      - name: Build Python Backend
+        run: |
+          pyinstaller --onefile --name vaultbuddy --hidden-import keyring.backends.Windows src/vaultbuddy/cli.py
+          
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build
+        
+      - name: Prepare Distribution
+        run: |
+          mkdir -p release/VaultBuddy/backend
+          mkdir -p release/VaultBuddy/frontend
+          
+          # Copy backend
+          cp dist/vaultbuddy.exe release/VaultBuddy/backend/
+          
+          # Copy frontend
+          cp -r frontend/build/* release/VaultBuddy/frontend/
+          
+          # Create launcher
+          @"
+          @echo off
+          title VaultBuddy
+          cd /d "%~dp0"
+          echo Starting VaultBuddy...
+          start /B backend\vaultbuddy.exe serve
+          timeout /t 2 /nobreak >nul
+          start http://localhost:3000
+          echo VaultBuddy is running! Press any key to stop...
+          pause >nul
+          taskkill /F /IM vaultbuddy.exe >nul 2>&1
+          "@ | Out-File -FilePath release/VaultBuddy/VaultBuddy.bat -Encoding ASCII
+          
+          # Create README
+          @"
+          VaultBuddy - Secure Secret Manager
+          ===================================
+          
+          Quick Start:
+          1. Double-click VaultBuddy.bat
+          2. Your browser will open with the VaultBuddy UI
+          
+          CLI Usage:
+          - Store: backend\vaultbuddy.exe store <name>
+          - Get: backend\vaultbuddy.exe get <name>
+          - List: backend\vaultbuddy.exe list
+          - Delete: backend\vaultbuddy.exe delete <name>
+          
+          Your secrets are stored securely in Windows Credential Manager.
+          "@ | Out-File -FilePath release/VaultBuddy/README.txt -Encoding UTF8
+        shell: pwsh
+
+      - name: Create ZIP Archive
+        run: |
+          Compress-Archive -Path release/VaultBuddy -DestinationPath VaultBuddy-${{ github.ref_name || inputs.version }}-windows.zip
+        shell: pwsh
+        
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VaultBuddy-windows
+          path: VaultBuddy-*.zip
+
+  release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: VaultBuddy-windows
+          path: ./artifacts
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name || inputs.version }}
+          name: VaultBuddy ${{ github.ref_name || inputs.version }}
+          body: |
+            ## VaultBuddy ${{ github.ref_name || inputs.version }}
+            
+            ### 🔐 Secure Secret Manager
+            
+            A secure, OS-keyring backed secret manager with a modern UI.
+            
+            ### Installation
+            
+            1. Download `VaultBuddy-${{ github.ref_name || inputs.version }}-windows.zip`
+            2. Extract to a folder of your choice
+            3. Run `VaultBuddy.bat`
+            
+            ### Features
+            
+            - 🔒 Secrets stored in Windows Credential Manager
+            - 🖥️ Modern web-based UI
+            - ⌨️ Full CLI support
+            - 🚀 No installation required - portable
+            
+            ### Requirements
+            
+            - Windows 10 or later
+            - Modern web browser
+            
+          files: ./artifacts/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

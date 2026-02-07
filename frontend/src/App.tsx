@@ -71,11 +71,6 @@ function App() {
 
   return (
     <div className="App">
-      <div className="matrix-bg">
-        {/* Data Matrix background effect */}
-        <div className="typing">VAULTBUDDY_SECURE_ACCESS_GRANTED</div>
-      </div>
-      
       <Header 
         onAddSecret={() => setShowAddModal(true)}
         onRefresh={loadSecrets}
@@ -85,7 +80,7 @@ function App() {
       <main className="main-content">
         {error && (
           <div className="error-message">
-            <span className="text-error">❌ {error}</span>
+            <span className="text-error">{error}</span>
           </div>
         )}
         

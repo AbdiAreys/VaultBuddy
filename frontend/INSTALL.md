@@ -12,7 +12,14 @@ start.bat
 .\start.ps1
 ```
 
-### Option 3: Manual Installation
+### Option 3: Troubleshooting Script (If others fail)
+```bash
+install-fix.bat
+```
+
+## Installation Methods
+
+### Method 1: Standard Installation
 ```bash
 # Clean previous installation
 rmdir /s /q node_modules
@@ -25,18 +32,16 @@ npm install --legacy-peer-deps
 npm start
 ```
 
-## Troubleshooting
-
-### TypeScript Version Conflict
-If you encounter a TypeScript version conflict error, this is because:
-- react-scripts@5.0.1 expects TypeScript 4.x
-- The package.json has been updated to use TypeScript 4.9.5
-- Use `--legacy-peer-deps` flag to resolve peer dependency conflicts
-
-### Alternative: Use Yarn
-If npm continues to have issues, try using Yarn:
+### Method 2: Force Installation
 ```bash
-# Install Yarn globally (if not already installed)
+# If standard installation fails
+npm install --force --legacy-peer-deps
+npm start
+```
+
+### Method 3: Using Yarn (Alternative)
+```bash
+# Install Yarn globally
 npm install -g yarn
 
 # Install dependencies
@@ -46,30 +51,95 @@ yarn install
 yarn start
 ```
 
-### Alternative: Use Create React App
-If you prefer a fresh start:
-```bash
-# Create new React app
-npx create-react-app vaultbuddy-frontend --template typescript
+## Troubleshooting
 
-# Copy our source files to the new project
-# Then install additional dependencies
-npm install
-```
+### Common Issues and Solutions
+
+#### 1. TypeScript Version Conflict
+**Error**: `Could not resolve dependency: peerOptional typescript@"^3.2.1 || ^4"`
+**Solution**: The package.json uses TypeScript 4.9.5 which is compatible with react-scripts 4.0.3
+
+#### 2. AJV Module Resolution Error
+**Error**: `Cannot find module 'ajv/dist/compile/codegen'`
+**Solution**: Use the troubleshooting script: `install-fix.bat`
+
+#### 3. Node.js Version Issues
+**Error**: Various dependency resolution errors
+**Solution**: 
+- Update Node.js to LTS version (16.x or 18.x)
+- Update npm: `npm install -g npm@latest`
+- Clear cache: `npm cache clean --force`
+
+#### 4. Permission Errors
+**Error**: EACCES or permission denied
+**Solution**:
+- Run as Administrator
+- Or use: `npm install --legacy-peer-deps --no-optional`
+
+### Advanced Troubleshooting
+
+#### If All Methods Fail:
+1. **Check Node.js Version**:
+   ```bash
+   node --version  # Should be 16.x or 18.x
+   npm --version   # Should be 8.x or 9.x
+   ```
+
+2. **Use Stable Package Configuration**:
+   ```bash
+   # Backup current package.json
+   copy package.json package.json.backup
+   
+   # Use stable configuration
+   copy package-stable.json package.json
+   
+   # Install
+   npm install --legacy-peer-deps
+   ```
+
+3. **Clean Everything**:
+   ```bash
+   # Remove all node files
+   rmdir /s /q node_modules
+   del package-lock.json
+   del yarn.lock
+   
+   # Clear all caches
+   npm cache clean --force
+   yarn cache clean
+   
+   # Reinstall
+   npm install --legacy-peer-deps
+   ```
 
 ## What's Fixed
 
-1. **TypeScript Version**: Downgraded from 5.x to 4.9.5 for compatibility
-2. **Node Types**: Updated to match TypeScript version
-3. **Legacy Peer Deps**: Added flag to handle dependency conflicts
-4. **Clean Installation**: Scripts now clean previous installations
+1. **React Scripts**: Downgraded to 4.0.3 (more stable)
+2. **TypeScript**: Version 4.9.5 (compatible with react-scripts)
+3. **Web Vitals**: Downgraded to 2.1.4 (more stable)
+4. **Error Handling**: Multiple fallback installation methods
+5. **Cache Clearing**: Automatic npm cache cleanup
+6. **Progress Indicators**: Clear step-by-step feedback
 
 ## Development Server
 
 Once installed successfully, the frontend will be available at:
 - **URL**: http://localhost:3000
 - **Features**: Hot reload, TypeScript compilation, CSS processing
+- **Auto-open**: Browser should open automatically
 
 ## Backend Integration
 
 The frontend is designed to work with the Python backend. Currently uses localStorage for demo purposes, but can be easily connected to the actual Python CLI.
+
+## File Structure
+
+```
+frontend/
+├── start.bat          # Main installer (Windows)
+├── start.ps1          # PowerShell installer
+├── install-fix.bat    # Troubleshooting installer
+├── package.json       # Main dependencies
+├── package-stable.json # Fallback stable config
+└── src/               # React source code
+```
